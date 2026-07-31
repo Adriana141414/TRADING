@@ -6,6 +6,9 @@ on:
     paths:
       - 'docs/trading-principiantes-ES.md'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,15 +19,47 @@ jobs:
         with:
           persist-credentials: true
 
+      - name: Debug - list repo files
+        run: |
+          echo "Current working directory: $(pwd)"
+          ls -la
+          echo "List docs/"
+          ls -la docs || true
+
       - name: Install pandoc and LaTeX
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-latex-recommended
+          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-latex-recommended curl
+
+      - name: Install eisvogel Pandoc template
+        run: |
+          mkdir -p ~/.pandoc/templates
+          curl -fsSL https://raw.githubusercontent.com/Wandmalfarbe/pandoc-latex-template/master/eisvogel.latex -o ~/.pandoc/templates/eisvogel.latex || true
+          echo "Template installed to ~/.pandoc/templates/eisvogel.latex"
+          ls -la ~/.pandoc/templates || true
+
+      - name: Verify source Markdown exists
+        run: |
+          if [ ! -f docs/trading-principiantes-ES.md ]; then
+            echo "ERROR: docs/trading-principiantes-ES.md not found in repository."
+            echo "Ensure the file is committed to the default branch and contains the markdown to convert."
+            exit 1
+          fi
 
       - name: Generate PDF from Markdown
         run: |
-          pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --from markdown --template eisvogel --toc || \
-          pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --toc
+          # Try with the eisvogel template if present, otherwise fallback to default
+          if [ -f ~/.pandoc/templates/eisvogel.latex ]; then
+            pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --from markdown --template eisvogel --toc
+          else
+            pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --toc
+          fi
+
+      - name: Show generated file
+        run: |
+          echo "Generated file info:"
+          ls -la docs || true
+          file docs/trading-principiantes-ES.pdf || true
 
       - name: Commit generated PDF
         uses: stefanzweifel/git-auto-commit-action@v4
