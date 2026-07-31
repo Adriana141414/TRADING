@@ -1,0 +1,33 @@
+name: Generate PDF from Markdown
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'docs/trading-principiantes-ES.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Install pandoc and LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-latex-recommended
+
+      - name: Generate PDF from Markdown
+        run: |
+          pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --from markdown --template eisvogel --toc || \
+          pandoc docs/trading-principiantes-ES.md -o docs/trading-principiantes-ES.pdf --toc
+
+      - name: Commit generated PDF
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Añadir guía PDF: Trading para principiantes (España)"
+          file_pattern: docs/trading-principiantes-ES.pdf
